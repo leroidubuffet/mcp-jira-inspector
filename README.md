@@ -205,26 +205,3 @@ El inspector no contiene ningun codigo especifico de Jira. Funciona con cualquie
 ```
 
 El inspector es un wrapper por servidor, no un interceptor global. Cada servidor que quieras monitorizar necesita su propia entrada en `mcpServers`.
-
----
-
-## El protocolo MCP
-
-Lo que el inspector registra es el protocolo MCP en bruto: mensajes JSON-RPC 2.0 intercambiados por stdio. El flujo completo de una sesion:
-
-```
-Agente                    Servidor MCP              Sistema externo
-  |                            |                          |
-  |--- initialize ------------>|                          |
-  |<-- {serverInfo, caps} -----|                          |
-  |--- tools/list ------------>|                          |
-  |<-- [{name, description,    |                          |
-  |      inputSchema}...] -----|                          |
-  |                            |                          |
-  |--- tools/call ------------>|--- HTTP / SDK / ... ---->|
-  |    {name, arguments}       |                          |
-  |                            |<-- respuesta ------------|
-  |<-- {content:[{text}]} -----|                          |
-```
-
-El transporte habitual es stdio: el cliente lanza el servidor como subproceso y se comunica con el por stdin/stdout. Para servidores remotos existe HTTP/SSE.
