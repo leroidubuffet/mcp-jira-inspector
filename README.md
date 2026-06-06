@@ -57,7 +57,7 @@ Abre `~/.claude.json` y anade la seccion `mcpServers` con esta entrada:
 ```
 Modifica también la ruta y la URL en `"args"` y `"JIRA_URL"`.
 
-Reinicia Claude Code. Con `/cmp` puedes verlos servidores mcp disponibles. Entrando en `jira-inspector` verás que las herramientas apareceran como `mcp__jira__get_issue`, `mcp__jira__create_issue`, etc.
+Reinicia Claude Code. Con `/mcp` puedes ver los servidores MCP disponibles. Entrando en `jira` verás que las herramientas apareceran como `mcp__jira__get_issue`, `mcp__jira__create_issue`, etc.
 
 ---
 

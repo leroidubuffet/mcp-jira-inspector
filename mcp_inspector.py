@@ -204,14 +204,6 @@ def _forward_claude_to_server(proc: subprocess.Popen, start_times: dict) -> None
         if not raw_line:
             continue
 
-        # Registrar tiempo de inicio para calcular latencia en la respuesta
-        try:
-            msg = json.loads(raw_line)
-            if msg.get("id") is not None:
-                start_times[msg["id"]] = time.time()
-        except Exception:
-            pass
-
         # Reenviar al servidor real siempre
         try:
             proc.stdin.write(raw_line + "\n")
@@ -219,9 +211,11 @@ def _forward_claude_to_server(proc: subprocess.Popen, start_times: dict) -> None
         except BrokenPipeError:
             break
 
-        # Explicar
+        # Parsear, registrar tiempo de inicio y explicar
         try:
             msg = json.loads(raw_line)
+            if msg.get("id") is not None:
+                start_times[msg["id"]] = time.time()
             symbol, direction, lines = _explain_request(msg)
             _log(symbol, direction, lines)
         except Exception:
@@ -281,7 +275,7 @@ def main() -> None:
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=sys.stderr,
         text=True,
         bufsize=1,
         env=os.environ.copy(),
