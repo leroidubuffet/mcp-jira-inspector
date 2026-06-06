@@ -42,7 +42,7 @@ Abre `~/.claude.json` y anade la seccion `mcpServers` con esta entrada:
 ```json
 {
   "mcpServers": {
-    "jira": {
+    "jira": {  
       "type": "stdio",
       "command": "python3",
       "args": ["/ruta/absoluta/a/jira_mcp_server.py"],
