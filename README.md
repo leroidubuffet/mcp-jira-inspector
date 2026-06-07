@@ -93,28 +93,13 @@ El inspector no modifica ningun mensaje. El agente recibe exactamente las mismas
 
 ### Configuracion en Claude Code
 
-**Paso 1.** Localiza la entrada `jira` en `~/.claude.json`. Tiene este aspecto:
+Para activar el inspector solo hay que hacer dos cambios en la entrada existente de `~/.claude.json`, mas anadir tres variables de entorno. Las credenciales de Jira son exactamente las mismas.
 
-```json
-{
-  "mcpServers": {
-    "jira": {
-      "type": "stdio",
-      "command": "python3",
-      "args": ["/ruta/absoluta/a/jira_mcp_server.py"],
-      "env": {
-        "JIRA_URL": "https://tu-empresa.atlassian.net",
-        "JIRA_EMAIL": "tu@empresa.com",
-        "JIRA_API_TOKEN": "tu-token"
-      }
-    }
-  }
-}
-```
-
-Borra esa entrada completamente. Si la entrada `jira` y la entrada `jira-inspector` coexisten en el archivo, Claude Code usara el servidor directo y el inspector no recibira ningun trafico.
-
-**Paso 2.** Anade la entrada del inspector en su lugar. Necesita las mismas variables de entorno que tenia el servidor directo (`JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`), mas tres variables propias del inspector (`MCP_INSPECTOR_CMD`, `MCP_INSPECTOR_ARGS`, `MCP_INSPECTOR_LOG`):
+| | Servidor directo | Con inspector |
+|---|---|---|
+| Nombre de la entrada | `"jira"` | `"jira-inspector"` |
+| `args` | `jira_mcp_server.py` | `mcp_inspector.py` |
+| Variables extra | ninguna | `MCP_INSPECTOR_CMD`, `MCP_INSPECTOR_ARGS`, `MCP_INSPECTOR_LOG` |
 
 ```json
 {
@@ -127,6 +112,7 @@ Borra esa entrada completamente. Si la entrada `jira` y la entrada `jira-inspect
         "MCP_INSPECTOR_CMD":  "python3",
         "MCP_INSPECTOR_ARGS": "/ruta/absoluta/a/jira_mcp_server.py",
         "MCP_INSPECTOR_LOG":  "/tmp/mcp_jira.log",
+        "MCP_INSPECTOR_RAW":  "1",
         "JIRA_URL":       "https://tu-empresa.atlassian.net",
         "JIRA_EMAIL":     "tu@empresa.com",
         "JIRA_API_TOKEN": "tu-token"
@@ -136,12 +122,14 @@ Borra esa entrada completamente. Si la entrada `jira` y la entrada `jira-inspect
 }
 ```
 
+`MCP_INSPECTOR_RAW=1` es opcional. Sin ella el log solo muestra la explicación en lenguaje natural. Con ella añade el JSON-RPC completo debajo de cada entrada, útil para ver exactamente qué se intercambia a nivel de protocolo.
+
+> La entrada `jira` y la entrada `jira-inspector` no pueden coexistir: si ambas estan en el archivo, Claude Code usara el servidor directo y el inspector no recibira ningun trafico.
+
 > **Rutas con espacios:** si la ruta contiene espacios, escríbela entre comillas simples dentro del valor de `MCP_INSPECTOR_ARGS`:
 > `"MCP_INSPECTOR_ARGS": "'/ruta/con espacios/jira_mcp_server.py'"`
 
-**Paso 3.** Reinicia Claude Code.
-
-**Paso 4.** En otro terminal, abre el log antes de empezar a usar el agente:
+Reinicia Claude Code. En otro terminal, abre el log antes de empezar a usar el agente:
 
 ```bash
 tail -f /tmp/mcp_jira.log

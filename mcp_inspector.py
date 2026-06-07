@@ -22,6 +22,7 @@ Uso:
   MCP_INSPECTOR_CMD   comando del servidor real (requerido)
   MCP_INSPECTOR_ARGS  argumentos separados por espacio (opcional)
   MCP_INSPECTOR_LOG   ruta del log (por defecto /tmp/mcp_inspector.log)
+  MCP_INSPECTOR_RAW   si vale 1, añade el JSON-RPC crudo bajo cada entrada del log
 """
 
 import json
@@ -33,6 +34,7 @@ import time
 from datetime import datetime
 
 LOG_PATH = os.environ.get("MCP_INSPECTOR_LOG", "/tmp/mcp_inspector.log")
+RAW_LOG  = os.environ.get("MCP_INSPECTOR_RAW", "") in ("1", "true", "yes")
 REAL_CMD = os.environ.get("MCP_INSPECTOR_CMD", "")
 # MCP_INSPECTOR_ARGS puede ser una ruta con espacios — usamos shlex para parsearla
 # correctamente en lugar de split() simple que rompería las rutas.
@@ -49,13 +51,20 @@ _pending_lock = threading.Lock()
 # Log
 # ---------------------------------------------------------------------------
 
-def _log(symbol: str, direction: str, lines: list[str], latency_ms: float | None = None) -> None:
+def _log(symbol: str, direction: str, lines: list[str], latency_ms: float | None = None, raw: str | None = None) -> None:
     now = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     sep = "─" * 60
     parts = [f"\n{sep}", f"[{now}]  {symbol}  {direction}"]
     parts.extend(f"  {l}" for l in lines)
     if latency_ms is not None:
         parts.append(f"  ⏱  {latency_ms:.0f} ms")
+    if raw and RAW_LOG:
+        try:
+            pretty = json.dumps(json.loads(raw), ensure_ascii=False, indent=2)
+            parts.append("  JSON-RPC:")
+            parts.extend(f"    {l}" for l in pretty.splitlines())
+        except Exception:
+            parts.append(f"  JSON-RPC: {raw}")
     with _log_lock:
         with open(LOG_PATH, "a", encoding="utf-8") as f:
             f.write("\n".join(parts) + "\n")
@@ -217,9 +226,9 @@ def _forward_claude_to_server(proc: subprocess.Popen, start_times: dict) -> None
             if msg.get("id") is not None:
                 start_times[msg["id"]] = time.time()
             symbol, direction, lines = _explain_request(msg)
-            _log(symbol, direction, lines)
+            _log(symbol, direction, lines, raw=raw_line)
         except Exception:
-            _log("→", "Claude → Servidor  [raw]", [raw_line[:120]])
+            _log("→", "Claude → Servidor  [raw]", [raw_line[:120]], raw=raw_line)
 
     proc.stdin.close()
 
@@ -248,9 +257,9 @@ def _forward_server_to_claude(proc: subprocess.Popen, start_times: dict) -> None
 
             if "result" in msg or "error" in msg:
                 symbol, direction, lines, lat = _explain_response(msg, latency)
-                _log(symbol, direction, lines, lat)
+                _log(symbol, direction, lines, lat, raw=raw_line)
         except Exception:
-            _log("←", "Servidor → Claude  [raw]", [raw_line[:120]])
+            _log("←", "Servidor → Claude  [raw]", [raw_line[:120]], raw=raw_line)
 
 
 # ---------------------------------------------------------------------------
